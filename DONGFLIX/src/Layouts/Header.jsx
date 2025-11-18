@@ -11,7 +11,7 @@ export default function HeaderPage() {
                 <div className="flex justify-center items-center">
                     <ul>
                         <li className="inline-block px-4 font-bold font-space text-lg text-white">Home</li>
-                        <li className="inline-block px-4 font-bold text-lg text-amber-950">Movies</li>
+                        <li className="inline-block px-4 font-bold text-lg text-amber-950">Donglfix</li>
                         <li className="inline-block px-4 font-bold text-lg text-amber-950">TV Shows</li>
                         <li className="inline-block px-4 font-bold text-lg text-amber-950">My List</li>
                     </ul>
