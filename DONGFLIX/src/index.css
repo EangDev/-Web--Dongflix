@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 @font-face {
-  font-family: 'Rolam';
-  src: url('./assets/Fonts/ROLAM-PersonalUse.otf');
+  font-family: Space Mono;
+  src: url(./assets/Fonts/SpaceMono-Regular.ttf) format("truetype");
 }
 
 :root {
@@ -12,9 +12,9 @@
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  background-color: #000000;
 
-  font-family: "Rolam";
+  font-family: "Space Mono", monospace;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
