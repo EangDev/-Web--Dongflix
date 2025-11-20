@@ -10,18 +10,18 @@ function App() {
   const [count, setCount] = useState(0)
 
   return (
-    <>
-      <div>
-        <HeaderPage />
-      </div>
-      <div>
+    <div className="flex flex-col min-h-screen">
+
+      <HeaderPage />
+
+      <main className="grow">
         <PopularTodayPage />
-      </div>
-      {/* <div>
-        <FooterPage />
-      </div>   */}
-    </>
-  )
+      </main>
+
+      <FooterPage />
+
+    </div>
+  );
 }
 
 export default App
