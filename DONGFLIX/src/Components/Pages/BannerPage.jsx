@@ -51,7 +51,6 @@ export default function BannerPage(){
                 <img src={ss} alt="Swallowed-Star" className="w-full h-[500px] object-cover" />
                 </SwiperSlide>
             </Swiper>
-            </main>
-
+        </main>
     );
 }

@@ -1,6 +1,7 @@
 import { useState} from 'react'
 import './App.css'
 
+import LatestSeriesPage from "./Components/Pages/LatestPage.jsx";
 import PopularTodayPage from './Components/Pages/PopularToday.jsx';
 import BannerPage from './Components/Pages/BannerPage.jsx';
 
@@ -19,6 +20,7 @@ function App() {
       
       <main className="grow">
         <PopularTodayPage />
+        <LatestSeriesPage />
       </main>
 
       <FooterPage />
