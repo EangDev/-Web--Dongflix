@@ -49,7 +49,7 @@ function PopularToday() {
           <img className="w-[150px] h-[150px] object-cover" src={loadingIMG} alt="Loading..." />
         </div>
       )}
-      <section className="relative min-h-screen pt-32 mx-auto bg-linear-to-b from-black via-gray-900 to-gray-800 rounded-2xl max-w-7xl">
+      <section className="relative min-h-screen mx-auto pt-25 bg-linear-to-b from-black via-gray-900 to-gray-800 rounded-2xl max-w-7xl">
         <div className="absolute inset-0 bg-[url('/pattern.png')] opacity-10 pointer-events-none"></div>
 
         <div className="relative z-10">
@@ -117,7 +117,7 @@ function PopularToday() {
             ) : (
               <button
                 onClick={handleCloseViewAll}
-                className="px-4 py-2 text-white transition bg-red-500 rounded hover:bg-red-600"
+                className="px-4 py-2 mb-5 text-white transition bg-red-500 rounded hover:bg-red-600"
               >
                 Close
               </button>
