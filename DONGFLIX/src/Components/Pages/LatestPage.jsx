@@ -104,7 +104,7 @@ export default function LatestPage(){
                             <button
                               onClick={handleNext}
                               disabled={currentPage === totalPage}
-                              className="px-4 py-2 text-white transition bg-gray-700 rounded disabled:opacity-50 hover:bg-gray-600"
+                              className="px-4 py-2 text-white transition bg-gray-700 rounded disabled:opacity-50 hover:bg-gray-600 "
                             >
                               Next
                             </button>
