@@ -50,7 +50,7 @@ export default function LatestPage(){
                     <img className="w-[150px] h-[150px] object-cover" src={loadingImg} alt="Loading..." />
                 </div>
             )}
-            <section className="relative min-h-screen mx-auto pt-25 bg-linear-to-b from-black via-gray-900 to-gray-900 rounded-2xl max-w-7xl">
+            <section className="relative min-h-screen pt-10 mx-auto bg-linear-to-b from-black via-gray-900 to-gray-900 rounded-2xl max-w-7xl">
             <div className="absolute inset-0 bg-[url('/pattern.png')] opacity-10 pointer-events-none"></div>
             
                 <div className="relative z-10">

@@ -1,6 +1,7 @@
 import { useState} from 'react'
 import './App.css'
 
+import UpcomingPage from './Components/Pages/UpcomingPage.jsx';
 import MoviePage from './Components/Pages/MoviePage.jsx';
 import LatestSeriesPage from "./Components/Pages/LatestPage.jsx";
 import PopularTodayPage from './Components/Pages/PopularToday.jsx';
@@ -21,6 +22,7 @@ function App() {
       
       <main className="grow">
         <PopularTodayPage />
+        <UpcomingPage />
         <LatestSeriesPage />
         <MoviePage />
       </main>

@@ -18,8 +18,13 @@ POPULAR_TTL = 600
 LATEST_CACHE = {"data": [], "timestamp": 0}
 LATEST_TTL = 600
 
+#Cache for movie page
 MOVIE_CACHE = {"data": [], "timestamp": 0}
 MOVIE_TTL = 600
+
+#Cache for upcoming page
+UPCOMING_CACHE = {"data": [], "timestamp": 0}
+UPCOMING_TTL = 600
 
 load_dotenv()
 API_URL = os.getenv("ANIME4I_URL")
@@ -37,7 +42,7 @@ if not LUCIFER_URL or not urlparse(LUCIFER_URL).scheme:
 
 #Validated the Seatv API
 if not SEATV_URL or not urlparse(SEATV_URL).scheme:
-    raise ValueError(f"Invalid DONGHUASTREAM URL in .env: {SEATV_URL}")
+    raise ValueError(f"Invalid SEATV URL in .env: {SEATV_URL}")
 
 #Validated the User-Agent
 if not USER_AGENT:
@@ -53,6 +58,36 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.mount("/images", StaticFiles(directory="images"), name="images")
+
+@app.get("/api/anime/upcoming")
+def get_upcoming_donghua():
+    try:
+        if time.time() - UPCOMING_CACHE["timestamp"] < UPCOMING_TTL:
+            return {"count": len(UPCOMING_CACHE["data"]), "results": UPCOMING_CACHE["data"]}
+        
+        file_path = os.path.join("data", "upcoming.json")
+        with open(file_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        allowed_types = {"ona"}
+        movies = [
+            item for item in data.get("data", [])
+            if str(item.get("type", "")).strip().lower() in allowed_types
+        ]
+        
+        UPCOMING_CACHE["data"] = movies
+        UPCOMING_CACHE["timestamp"] = time.time()
+
+        return {"count": len(movies), "data": movies}
+
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="movies.json not found")
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=500, detail="Invalid JSON format in movies.json")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unexpected Error: {str(e)}")
+            
 @app.get("/api/anime/popular")
 def get_popular_donghua():
     try:
@@ -82,10 +117,18 @@ def get_popular_donghua():
             title = link_tag.get("title", "").strip()
             link = link_tag.get("href", "#").strip()
             
-            ep_match = re.search(r"Episode\s*(\d+)", title, re.IGNORECASE)
-            episode = ep_match.group(1) if ep_match else None
-            
-            clean_title = re.sub(r"\s*Episode\s*\d+.*", "", title, flags=re.IGNORECASE).strip()
+            ep_match = re.search(r"(Episode|Ep)\s*(\d+)", title, re.IGNORECASE)
+            episode = ep_match.group(2) if ep_match else None
+                
+            if episode is None:
+                ep_span = item.select_one("span.epx")
+                if ep_span:
+                    ep_match = re.search(r"\d+", ep_span.get_text(strip=True))
+                    episode = ep_match.group(0) if ep_match else None
+                                
+            clean_title = re.sub(r"(Episode|Ep)\s*\d+", "", title, flags=re.IGNORECASE)
+            clean_title = re.sub(r"\[.*?\]|\bSubtitle\b", "", clean_title, flags=re.IGNORECASE)
+            clean_title = clean_title.strip()
             
             img_tag = item.select_one("img")
             image = (

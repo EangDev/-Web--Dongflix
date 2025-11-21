@@ -13,7 +13,6 @@ import sw from '@/assets/Banner/sw.jpg'
 import ss from '@/assets/Banner/ss.jpg'
 
 import { Autoplay, Pagination, Navigation } from 'swiper/modules';
-import { faL } from "@fortawesome/free-solid-svg-icons";
 
 export default function BannerPage(){
     return(
