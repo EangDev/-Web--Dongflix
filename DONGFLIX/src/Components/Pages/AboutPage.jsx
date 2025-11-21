@@ -1,4 +1,5 @@
-import React, {useState, useEffect} from "react";
+import React from "react";
+
 import HeaderPage from "../../Layouts/Header.jsx";
 import FooterPage from "../../Layouts/Footer.jsx";
 
