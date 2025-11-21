@@ -13,7 +13,7 @@ export default function Footer() {
                     className="w-auto h-16 rounded-xl"
                 />
                 <p className="text-sm text-[#ccc] leading-relaxed">
-                    &copy; {new Date().getFullYear()} Dongflix – Watch Online: Chinese Anime / Donghua. All Rights Reserved.
+                    <span className='relative text-2xl top-2'>&copy;</span> {new Date().getFullYear()} Dongflix – Watch Online: Chinese Anime / Donghua. All Rights Reserved.
                     <br />
                     Disclaimer: This site Dongflix – Watch Online: Chinese Anime / Donghua does not store any files on its server.
                     <br />

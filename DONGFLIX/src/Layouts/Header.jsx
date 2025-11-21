@@ -1,4 +1,6 @@
-import React from "react";
+import React, {useState, useEffect} from "react";
+import { Link } from "react-router-dom";
+
 import logo from "../assets/Logo/mylogo.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { 
@@ -9,7 +11,7 @@ import '../Layouts/HeaderPage.css';
 
 function HeaderPage() {
   return (
-    <header className="w-full fixed rounded-xl top-0 left-0 bg-[#131313] text-[#cccccc] z-50 shadow-md">
+    <header className="w-full fixed top-0 left-0 bg-[#131313] text-[#cccccc] z-50 shadow-md">
       <div className="flex items-center justify-between h-20 px-5 mx-auto max-w-7xl">
         <div className="flex items-center cursor-pointer">
           <img
@@ -31,10 +33,14 @@ function HeaderPage() {
         <nav>
           <ul className="flex items-center space-x-5 cursor-pointer">
             <li className="flex items-center space-x-1 transition-colors hover:text-white">
-              <FontAwesomeIcon icon={faHouse}/> <span>Home</span>
+              <Link to="/" className="flex items-center space-x-1 text-[#cccccc] hover:text-white">
+                <FontAwesomeIcon icon={faHouse}/> <span>Home</span>
+              </Link>
             </li>
             <li className="flex items-center space-x-1 transition-colors hover:text-white">
-              <FontAwesomeIcon icon={faBookOpen}/> <span>About Us</span>
+              <Link to="/about" className="flex items-center space-x-1 text-[#cccccc] hover:text-white">
+                <FontAwesomeIcon icon={faBookOpen}/> <span>About Us</span>
+              </Link>
             </li>
             <li className="flex items-center space-x-1 transition-colors hover:text-white">
               <FontAwesomeIcon icon={faEnvelope}/> <span>Contact Us</span>

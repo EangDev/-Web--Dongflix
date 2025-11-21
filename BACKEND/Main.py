@@ -169,9 +169,10 @@ def get_latest_donghua():
             }
 
         results = []
+        MAX_PAGE = 12
         page = 1
 
-        while True:
+        while page <= MAX_PAGE:
             url = f"{SEATV_URL}/page/{page}/" if page > 1 else SEATV_URL
             res = requests.get(url, headers=headers)
             if res.status_code != 200:

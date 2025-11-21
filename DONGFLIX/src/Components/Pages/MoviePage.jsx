@@ -51,9 +51,12 @@ export default function MoviePage(){
                     <img className="w-[150px] h-[150px] object-cover" src={loadingIMG} alt="Loading..." />
                 </div>
             )}
-            <section className="relative min-h-screen mx-auto pt-25 bg-linear-to-b from-black via-gray-900 to-gray-800 rounded-2xl max-w-7xl">
-                <div className="absolute inset-0 bg-[url('/pattern.png')] opacity-10 pointer-events-none"></div>
-            
+            <section className="relative min-h-screen mx-auto pt-25 max-w-7xl bg-linear-to-b from-[#050505] via-[#111] to-[#0a0a0a] rounded-2xl overflow-hidden">
+                <div className="absolute inset-0">
+                    <div className="absolute w-[500px] h-[500px] bg-blue-500/20 rounded-full blur-[120px] top-[-10%] left-[-10%] animate-pulse"></div>
+                    <div className="absolute w-[400px] h-[400px] bg-purple-500/20 rounded-full blur-[130px] bottom-[-10%] right-[-10%] animate-pulse"></div>
+                </div>
+                <div className="absolute inset-0 bg-[url('/pattern.png')] opacity-[0.03] mix-blend-overlay pointer-events-none"></div>
                 <div className="relative z-10">
                     <div className="flex items-center gap-2 mb-8 ml-9">
                         <ul className="p-0 m-0 list-none">
@@ -69,7 +72,7 @@ export default function MoviePage(){
                       <div className="w-[90%] mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-12">
                         {currentItems.map((item, index) => (
                           <div key={index} className="relative flex flex-col items-center cursor-pointer group">
-                            <div className="relative w-[200px] h-[250px] overflow-hidden rounded-md bg-[#111]">
+                            <div className="relative w-[200px] h-[250px] overflow-hidden rounded-md bg-[#111] hover:shadow-[0_0_15px_#00c3ff55]">
                               <img
                                 className="object-cover w-full h-full transition-all duration-300 group-hover:opacity-50 group-hover:scale-105"
                                 src={item.image}

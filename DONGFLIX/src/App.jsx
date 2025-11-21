@@ -1,36 +1,20 @@
-import { useState} from 'react'
+import React, { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+
 import './App.css'
 
-import UpcomingPage from './Components/Pages/UpcomingPage.jsx';
-import MoviePage from './Components/Pages/MoviePage.jsx';
-import LatestSeriesPage from "./Components/Pages/LatestPage.jsx";
-import PopularTodayPage from './Components/Pages/PopularToday.jsx';
-import BannerPage from './Components/Pages/BannerPage.jsx';
-
-{/*Header and Footer Page*/}
-import HeaderPage from './Layouts/Header.jsx';
-import FooterPage from './Layouts/Footer.jsx';
+import HomePage from './Components/Pages/HomePage.jsx';
+import AboutPage from './Components/Pages/AboutPage.jsx';
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <div className="flex flex-col min-h-screen">
-
-      <HeaderPage />
-      <BannerPage />
-      
-      <main className="grow">
-        <PopularTodayPage />
-        <UpcomingPage />
-        <LatestSeriesPage />
-        <MoviePage />
-      </main>
-
-      <FooterPage />
-
-    </div>
-  );
+    <Router future={{ v7_startTransition: true }}>
+      <Routes>
+        <Route path='/' element={<HomePage />} />
+        <Route path='/about' element={<AboutPage />} />
+      </Routes>
+    </Router>
+  )
 }
 
 export default App
