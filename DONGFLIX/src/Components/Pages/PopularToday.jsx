@@ -8,11 +8,6 @@ function PopularToday() {
   const [popularDong, setPopularDong] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const [viewAll, setViewAll] = useState(false);
-  const ITEM_PER_PAGE = 5;
-
   useEffect(() => {
     const fetchPopular = async () => {
       try {
@@ -28,20 +23,6 @@ function PopularToday() {
     fetchPopular();
   }, []);
 
-  const indexOfLast = currentPage * ITEM_PER_PAGE;
-  const indexOfFirst = (currentPage - 1) * ITEM_PER_PAGE;
-  const currentItems = viewAll ? popularDong : popularDong.slice(indexOfFirst, indexOfLast);
-  const totalPage = Math.ceil(popularDong.length / ITEM_PER_PAGE);
-
-  const handleNext = () => {
-    if (currentPage < totalPage) setCurrentPage(prev => prev + 1);
-  };
-  const handlePrev = () => {
-    if (currentPage > 1) setCurrentPage(prev => prev - 1);
-  };
-  const handleViewAll = () => setViewAll(true);
-  const handleCloseViewAll = () => { setViewAll(false); setCurrentPage(1); };
-
   return (
     <>
       {loading && (
@@ -49,14 +30,14 @@ function PopularToday() {
           <img className="w-[150px] h-[150px] object-cover" src={loadingIMG} alt="Loading..." />
         </div>
       )}
-      <section className="relative min-h-screen mx-auto pt-25 bg-linear-to-b from-black via-gray-900 to-gray-800 rounded-2xl max-w-7xl">
+      <section className="relative h-[520px] mx-auto pt-25 bg-linear-to-b from-black via-gray-900 to-gray-800 rounded-2xl max-w-7xl">
         <div className="absolute inset-0 bg-[url('/pattern.png')] opacity-10 pointer-events-none"></div>
 
         <div className="relative z-10">
           <div className="flex items-center gap-2 mb-8 ml-9">
             <ul className="p-0 m-0 list-none">
               <li className="text-[#ccc] font-bold text-xl flex items-center gap-2">
-                <span className="bg-[#bbefff] text-black px-5 py-2 rounded-tl-2xl rounded-br-2xl">
+                <span className="bg-[#bbefff] text-black px-5 py-2 rounded-tl-2xl rounded-br-2xl font-[Nulshock]">
                   Popular
                 </span>
                 Today
@@ -65,7 +46,7 @@ function PopularToday() {
             </ul>
           </div>
           <div className="w-[90%] mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-12">
-            {currentItems.map((item, index) => (
+            {popularDong.map((item, index) => (
               <div key={index} className="relative flex flex-col items-center cursor-pointer group">
                 <div className="relative w-[200px] h-[250px] overflow-hidden rounded-md bg-[#111]">
                   <img
@@ -89,39 +70,6 @@ function PopularToday() {
                 </p>
               </div>
             ))}
-          </div>
-          <div className="flex justify-center mt-7.5 gap-3">
-            {!viewAll ? (
-              <>
-                <button
-                  onClick={handlePrev}
-                  disabled={currentPage === 1}
-                  className="px-4 py-2 text-white transition bg-gray-700 rounded disabled:opacity-50 hover:bg-gray-600"
-                >
-                  Prev
-                </button>
-                <button
-                  onClick={handleNext}
-                  disabled={currentPage === totalPage}
-                  className="px-4 py-2 text-white transition bg-gray-700 rounded disabled:opacity-50 hover:bg-gray-600"
-                >
-                  Next
-                </button>
-                <button
-                  onClick={handleViewAll}
-                  className="px-4 py-2 text-white transition bg-blue-500 rounded hover:bg-blue-600"
-                >
-                  View All
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={handleCloseViewAll}
-                className="px-4 py-2 mb-5 text-white transition bg-red-500 rounded hover:bg-red-600"
-              >
-                Close
-              </button>
-            )}
           </div>
         </div>
       </section>

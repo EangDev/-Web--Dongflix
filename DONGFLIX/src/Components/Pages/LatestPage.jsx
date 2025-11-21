@@ -57,7 +57,7 @@ export default function LatestPage(){
                     <div className="flex items-center gap-2 mb-8 ml-9">
                         <ul className="p-0 m-0 list-none">
                           <li className="text-[#ccc] font-bold text-xl flex items-center gap-2">
-                            <span className="bg-[#bbefff] text-black px-5 py-2 rounded-tl-2xl rounded-br-2xl">
+                            <span className="bg-[#bbefff] text-black px-5 py-2 rounded-tl-2xl rounded-br-2xl font-[Nulshock]">
                               Latest
                             </span>
                             Series

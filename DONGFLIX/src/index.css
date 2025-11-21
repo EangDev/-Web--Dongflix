@@ -5,6 +5,11 @@
   src: url(./assets/Fonts/SpaceMono-Regular.ttf) format("truetype");
 }
 
+@font-face {
+  font-family: Nulshock;
+  src: url(./assets/Fonts/Nulshock\ Bd.otf);
+}
+
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
