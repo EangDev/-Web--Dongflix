@@ -53,10 +53,14 @@ function HeaderPage() {
               </Link>
             </li>
             <li className="flex items-center space-x-1 transition-colors hover:text-white">
-              <FontAwesomeIcon icon={faTelevision}/> <span>Bookmark</span>
+              <Link to="/bookmark" className="flex items-center space-x-1 text-[#cccccc] hover:text-white">
+                <FontAwesomeIcon icon={faTelevision}/> <span>Bookmark</span>
+              </Link>
             </li>
             <li className="flex items-center space-x-1 transition-colors hover:text-white">
-              <FontAwesomeIcon icon={faUser}/> <span>Sign In</span>
+              <Link to="/login" className="flex items-center space-x-1 text-[#cccccc] hover:text-white">
+                <FontAwesomeIcon icon={faUser}/> <span>Sign Up</span>
+              </Link>
             </li>
           </ul>
         </nav>
