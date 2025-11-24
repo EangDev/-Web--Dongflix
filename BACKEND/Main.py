@@ -2,13 +2,16 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
-from urllib.parse import urlparse, unquote
+from urllib.parse import urlparse, unquote, urljoin
 from fastapi.staticfiles import StaticFiles
-import time, pyodbc, smtplib, json
+import time, smtplib, json
 import base64, re, os, requests
 from pydantic import BaseModel
 from datetime import datetime
 from typing import List, Optional
+import mysql.connector
+from passlib.context import CryptContext
+from jose import JWTError, jwt
 
 #Cache for popular page
 POPULAR_CACHE = {"data": [], "timestamp": 0}
@@ -26,11 +29,39 @@ MOVIE_TTL = 600
 UPCOMING_CACHE = {"data": [], "timestamp": 0}
 UPCOMING_TTL = 600
 
+#Cache for steaming method
+STREAM_CACHE = {}
+STREAM_TTL = 600
+
+#Cache for episode
+EPISODES_CACHE = {}
+EPISODES_TTL = 600
+
 load_dotenv()
 API_URL = os.getenv("ANIME4I_URL")
 LUCIFER_URL = os.getenv("LUCIFER_URL")
 SEATV_URL = os.getenv("SEATV_URL")
 USER_AGENT = os.getenv("USER_AGENT")
+
+pwd_context = CryptContext(
+    schemes=["bcrypt"],
+    deprecated="auto",
+    bcrypt__rounds=12
+)
+
+# DB connection
+def get_db():
+    try:
+        db = mysql.connector.connect(
+            host=os.getenv("DB_SERVER"),
+            user=os.getenv("DB_USER"),
+            password=os.getenv("DB_PWD"),
+            database=os.getenv("DB_NAME"),
+            port=int(os.getenv("DB_PORT", 3306))
+        )
+        return db
+    except mysql.connector.Error as e:
+        raise HTTPException(status_code=500, detail=f"Database connection error: {e}")
 
 #Validated the API
 if not API_URL or not urlparse(API_URL).scheme:
@@ -52,13 +83,125 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 app.mount("/images", StaticFiles(directory="images"), name="images")
+
+#Pydantic Model
+class UserRegister(BaseModel):
+    username: str
+    email: str
+    password: str
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+class BookmarkCreate(BaseModel):
+    user_id: str
+    title: str
+    link: str
+    image: str
+
+#Utiliti
+def hash_password(password: str) -> str:
+    truncated = password.encode("utf-8")[:72].decode("utf-8", errors="ignore")
+    return pwd_context.hash(truncated)
+
+def verify_password(plain_pass: str, hashed_pass: str) -> bool:
+    truncated = plain_pass.encode("utf-8")[:72].decode("utf-8", errors="ignore")
+    return pwd_context.verify(truncated, hashed_pass)
+
+#Register Endpoint
+@app.post("/api/register")
+def register(user: UserRegister):
+    try:
+        db = get_db()
+        cursor = db.cursor(dictionary=True)
+
+        # Check if email exists
+        cursor.execute("SELECT id FROM users WHERE email = %s", (user.email,))
+        if cursor.fetchone():
+            cursor.close()
+            db.close()
+            raise HTTPException(status_code=400, detail="Email already registered")
+
+        # Hash password safely
+        hashed_pw = hash_password(user.password)
+        cursor.execute(
+            "INSERT INTO users(username, email, password) VALUES (%s, %s, %s)",
+            (user.username, user.email, hashed_pw)
+        )
+        db.commit()
+        cursor.close()
+        db.close()
+
+        return {"message": "User registered successfully!"}
+
+    except Exception as e:
+        # Catch everything and print the error
+        print("REGISTER ERROR:", e)
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
+
+# Login endpoint
+@app.post("/api/login")
+def login(user: UserLogin):
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
+
+    cursor.execute(
+        "SELECT id, username, email, password FROM users WHERE email = %s", (user.email,)
+    )
+    db_user = cursor.fetchone()
+    cursor.close()
+    db.close()
+
+    if not db_user:
+        raise HTTPException(status_code=400, detail="Invalid email or password")
+
+    if not verify_password(user.password, db_user["password"]):
+        raise HTTPException(status_code=400, detail="Invalid email or password")
+
+    return {
+        "message": "Login successful!",
+        "user": {"id": db_user["id"], "username": db_user["username"], "email": db_user["email"]}
+    }
+
+#add bookmark to database
+@app.post("/api/bookmark")
+def add_bookmark(bookmark: BookmarkCreate):
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
+    
+    cursor.execute(
+        "INSERT INTO tb_bookmarks (user_id, title, link, image) VALUE (%s, %s, %s, %s)",
+        (bookmark.user_id, bookmark.title, bookmark.link, bookmark.image)
+    )
+    db.commit()
+    cursor.close()
+    db.close()
+    
+    return {"message": "Bookmark added successfully!"}
+    
+#get bookmark from database for front end
+@app.get("/api/bookmarks/{user_id}")
+def get_bookmarks(user_id: int):
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
+    
+    cursor.execute(
+        "SELECT * FROM tb_bookmarks WHERE user_id = %s", (user_id,)
+    )
+    
+    results = cursor.fetchall()
+    cursor.close()
+    db.close()
+    
+    return {"count": len(results), "bookmarks": results}
 
 @app.get("/api/anime/upcoming")
 def get_upcoming_donghua():
@@ -393,3 +536,143 @@ def get_movies_donghua():
 
     # except Exception as err:
     #     raise HTTPException(status_code=500, detail=f"Scraper Error: {str(err)}")
+    
+@app.get("/api/anime/stream")
+def get_stream(url: str):
+    now = time.time()
+
+    if url in STREAM_CACHE and now - STREAM_CACHE[url]["timestamp"] < STREAM_TTL:
+        return STREAM_CACHE[url]["data"]
+
+    headers = {"User-Agent": USER_AGENT}
+
+    try:
+        res = requests.get(url, headers=headers)
+        if res.status_code != 200:
+            raise HTTPException(status_code=404, detail="Episode not found")
+
+        soup = BeautifulSoup(res.text, "html.parser")
+
+        servers = {}
+
+        select = soup.select_one("select.mirror")
+        if select:
+            for opt in select.find_all("option"):
+                value = opt.get("value")
+                server_name = opt.text.strip()
+
+                if value:
+                    try:
+                        decoded = base64.b64decode(value).decode("utf-8")
+                        iframe_soup = BeautifulSoup(decoded, "html.parser")
+                        iframe = iframe_soup.find("iframe")
+
+                        if iframe and iframe.get("src"):
+                            servers[server_name] = iframe.get("src")
+
+                    except Exception:
+                        pass
+
+        if not servers:
+            iframe = soup.find("iframe")
+            if iframe and iframe.get("src"):
+                servers["default"] = iframe.get("src")
+
+        if not servers:
+            raise HTTPException(status_code=404, detail="No video servers found")
+
+        result = {"servers": servers}
+
+        STREAM_CACHE[url] = {
+            "data": result,
+            "timestamp": now
+        }
+
+        return result
+
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(status_code=500, detail=f"Request error: {str(e)}")
+              
+@app.get("/api/anime/episodes")
+def get_episodes(url: str):
+    now = time.time()
+
+    # Check cache
+    if url in EPISODES_CACHE and now - EPISODES_CACHE[url]["timestamp"] < EPISODES_TTL:
+        return EPISODES_CACHE[url]["data"]
+
+    headers = {"User-Agent": USER_AGENT}
+    res = requests.get(url, headers=headers)
+    if res.status_code != 200:
+        raise HTTPException(status_code=404, detail="Failed to load anime page")
+
+    soup = BeautifulSoup(res.text, "html.parser")
+
+    episode_items = soup.select("ul#episode_related li a, ul.episodelist li a")
+    if not episode_items:
+        episode_items = soup.select("div#episodes li a, div.episodelist a")
+
+    episodes = []
+    for ep in episode_items:
+        href = ep.get("href")
+        text = ep.text.strip()
+
+        # Extract episode number
+        ep_match = re.search(r'[Ee]pisode\s*(\d+)', text)
+        if ep_match:
+            ep_number = ep_match.group(1)
+        else:
+            numbers = re.findall(r'\d+', text)
+            ep_number = numbers[-1] if numbers else text
+
+        if href:
+            full_url = urljoin(url, href)
+            episodes.append({"number": ep_number, "url": full_url})
+
+    if not episodes:
+        raise HTTPException(status_code=404, detail="No episodes found")
+
+    episodes = sorted(episodes, key=lambda x: int(x["number"]) if x["number"].isdigit() else 9999)
+
+    result = {"count": len(episodes), "episodes": episodes}
+
+    EPISODES_CACHE[url] = {"data": result, "timestamp": now}
+    return result
+
+@app.get("/api/anime/search")
+def get_search(q: str = ""):
+    try:
+        latest = LATEST_CACHE.get("data", [])
+        upcoming = UPCOMING_CACHE.get("data", [])
+        
+        def normalize_latest(item):
+            return{
+                "title": item.get("title", ""),
+                "link": item.get("link", ""),
+                "image": item.get("image", ""),
+                "episode": item.get("episode", "")
+            }
+        
+        def normalize_upcoming(item):
+            return{
+                "title": item.get("title", ""),
+                "link": item.get("link", ""),
+                "image": item.get("image", ""),
+                "episode": item.get("episode", "Upcoming")
+            }
+        
+        all_items = []
+        all_items += [normalize_latest(i) for i in latest]
+        all_items += [normalize_upcoming(i) for i in upcoming]
+        
+        if q.strip():
+            q_lower = q.lower()
+            all_items = [
+                item for item in all_items
+                if q_lower in item["title"].lower()
+            ]
+        
+        return {"count": len(all_items), "results": all_items}
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Search error: {str(e)}")

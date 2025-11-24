@@ -10,6 +10,8 @@ import SupportPage from './Components/Pages/SupportPage.jsx';
 import BookmarkPage from './Components/Pages/BookmarkPage.jsx';
 import LoginPage from './Components/Pages/Admin/LoginPage.jsx';
 import RegisterPage from './Components/Pages/Admin/RegisterPage.jsx';
+import ProfilePage from './Components/Pages/Admin/ProfilePage.jsx';
+import WatchPage from './Components/Pages/WatchPage.jsx';
 
 function App() {
   return (
@@ -22,6 +24,8 @@ function App() {
         <Route path='/bookmark' element={<BookmarkPage />} />
         <Route path='/login' element={<LoginPage />} />
         <Route path='/register' element={<RegisterPage />} />
+        <Route path='/profile' element={<ProfilePage />} />
+        <Route path='/watch' element={<WatchPage />} />
       </Routes>
     </Router>
   )
