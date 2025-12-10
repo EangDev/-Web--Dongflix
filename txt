@@ -1,0 +1,253 @@
+@app.get("/api/anime/detail")
+def get_detail(url: str):
+    try:
+        headers = {"User-Agent": USER_AGENT}
+
+        # Check cache first
+        if url in DETAIL_CACHE and time.time() - DETAIL_CACHE[url]["ts"] < DETAIL_TTL:
+            return DETAIL_CACHE[url]["data"]
+
+        res = requests.get(url, headers=headers)
+        if res.status_code != 200:
+            raise HTTPException(status_code=404, detail="Failed to fetch detail page")
+
+        soup = BeautifulSoup(res.text, "html.parser")
+
+        title_block = soup.select_one("div.lm")
+
+        title = title_block.select_one("h1.entry-title").get_text(strip=True)
+        episode_meta = title_block.select_one("meta[itemprop='episodeNumber']")
+        episode = episode_meta.get("content") if episode_meta else None
+
+        released_date = (
+            title_block.select_one("span.updated").get_text(strip=True)
+            if title_block.select_one("span.updated")
+            else None
+        )
+
+        series_tag = title_block.select_one("span.year a")
+        series_link = series_tag.get("href") if series_tag else None
+        series_title = series_tag.get_text(strip=True) if series_tag else None
+
+        info_box = soup.select_one("div.single-info.bixbox")
+
+        # Image
+        poster_tag = info_box.select_one("img")
+        image = (
+            poster_tag.get("data-src")
+            or poster_tag.get("src")
+            or None
+        )
+
+        # Donghua Name + Chinese Name
+        main_title = info_box.select_one("h2[itemprop='partOfSeries']")
+        donghua_name = main_title.get_text(strip=True) if main_title else None
+
+        chinese_title = info_box.select_one("span.alter")
+        chinese_name = chinese_title.get_text(strip=True) if chinese_title else None
+
+        # Rating
+        rating_wrapper = info_box.select_one("div.rating strong")
+        rating = (
+            rating_wrapper.get_text(strip=True).replace("Rating", "").strip()
+            if rating_wrapper else None
+        )
+
+        info_items = info_box.select("div.spe span")
+        details = {}
+
+        for span in info_items:
+            raw = span.get_text(" ", strip=True)
+
+            if ":" in raw:
+                key, value = raw.split(":", 1)
+                key = key.strip().lower()
+                details[key] = value.strip()
+
+        genres = [
+            g.get_text(strip=True)
+            for g in info_box.select("div.genxed a")
+        ]
+
+        desc_tag = info_box.select_one("div.desc")
+        description = (
+            desc_tag.get_text(" ", strip=True)
+            if desc_tag
+            else None
+        )
+
+        related_section = soup.select_one("div.bixbox")
+        related = []
+
+        if related_section:
+            rel_items = related_section.select("ul li a, article a")
+            for item in rel_items:
+                related.append({
+                    "title": item.get("title") or item.get_text(strip=True),
+                    "link": item.get("href")
+                })
+
+        result = {
+            "title": title,
+            "episode": episode,
+            "release_date": released_date,
+            "series_title": series_title,
+            "series_link": series_link,
+            "donghua_name": donghua_name,
+            "chinese_name": chinese_name,
+            "image": image,
+            "rating": rating,
+            "details": {
+                "status": details.get("status"),
+                "network": details.get("network"),
+                "released": details.get("released"),
+                "duration": details.get("duration"),
+                "season": details.get("season"),
+                "country": details.get("country"),
+                "type": details.get("type"),
+                "episodes": details.get("episodes"),
+                "fansub": details.get("fansub"),
+                "censor": details.get("censor"),
+            },
+            "genres": genres,
+            "description": description,
+            "related_episodes": related
+        }
+
+        DETAIL_CACHE[url] = {
+            "data": result,
+            "ts": time.time()
+        }
+
+        return result
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Fetch detail error: {str(e)}")
+
+@app.get("/api/anime/stream")
+def get_streaming(url: str):
+    try:
+        headers = {"User-Agent": USER_AGENT}
+        
+        if url in STREAM_CACHE and time.time() - STREAM_CACHE[url]["ts"] < STREAM_TTL:
+            return STREAM_CACHE[url]["data"]
+
+        res = requests.get(url, headers=headers)
+        if res.status_code != 200:
+            raise HTTPException(status_code=404, detail="Failed to fetch streaming page")
+
+        soup = BeautifulSoup(res.text, "html.parser")
+        
+        iframe = soup.select_one("iframe")
+        stream_url = None
+
+        if iframe:
+            stream_url = (
+                iframe.get("data-src")
+                or iframe.get("src")
+                or None
+            )
+        if stream_url and stream_url.startswith("data:image"):
+            try:
+                encoded = stream_url.split(",", 1)[1]
+                decoded = base64.b64decode(encoded).decode("utf-8")
+
+                # Extract real URL inside the iframe HTML
+                inner = BeautifulSoup(decoded, "html.parser").select_one("iframe")
+                stream_url = (
+                    inner.get("src")
+                    or inner.get("data-src")
+                    or None
+                )
+            except:
+                pass
+            
+        if not stream_url:
+            raise HTTPException(status_code=404, detail="No playable stream found")
+
+        # Make full URL if relative
+        if stream_url.startswith("//"):
+            parsed = urlparse(url)
+            stream_url = f"{parsed.scheme}:{stream_url}"
+        elif stream_url.startswith("/"):
+            stream_url = urljoin(url, stream_url)
+
+        final_result = {
+            "source": stream_url
+        }
+
+        STREAM_CACHE[url] = {
+            "data": final_result,
+            "ts": time.time()
+        }
+
+        return final_result
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Stream fetch error: {str(e)}")
+
+@app.get("/api/anime/episodes")
+def get_episodes(url: str):
+    try:
+        headers = {"User-Agent": USER_AGENT}
+        
+        if url in EPISODES_CACHE and (time.time() - EPISODES_CACHE[url]["ts"] < EPISODES_TTL):
+            return EPISODES_CACHE[url]["data"]
+
+        res = requests.get(url, headers=headers)
+        if res.status_code != 200:
+            raise HTTPException(status_code=404, detail="Failed to fetch episode list page")
+
+        soup = BeautifulSoup(res.text, "html.parser")
+
+        episode_items = soup.select("li[data-id] a")
+        if not episode_items:
+            raise HTTPException(status_code=404, detail="Episode list not found")
+
+        episodes = []
+
+        for ep in episode_items:
+            link = ep.get("href")
+            title_block = ep.select_one("h3")
+            title = title_block.get_text(strip=True) if title_block else ""
+
+            # Extract episode number from title
+            ep_match = re.search(r"Episode\s*(\d+)", title, re.IGNORECASE)
+            number = int(ep_match.group(1)) if ep_match else None
+
+            # Thumbnail
+            img_tag = ep.select_one("img")
+            image = (
+                img_tag.get("data-src")
+                or img_tag.get("src")
+                or ""
+            )
+
+            # Clean title
+            clean_title = re.sub(r"\s*Episode\s*\d+.*", "", title, flags=re.IGNORECASE).strip()
+
+            episodes.append({
+                "episode_number": number,
+                "title": clean_title,
+                "raw_title": title,
+                "link": link,
+                "image": image
+            })
+
+        # Sort newest → oldest
+        episodes = sorted(episodes, key=lambda x: x["episode_number"] or 0, reverse=True)
+
+        result = {
+            "count": len(episodes),
+            "episodes": episodes
+        }
+
+        EPISODES_CACHE[url] = {
+            "data": result,
+            "ts": time.time()
+        }
+
+        return result
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Episode fetch error: {str(e)}")

@@ -62,7 +62,7 @@ export default function UpcomingPage() {
                 <div className="flex flex-col items-center gap-10 px-6 py-10 shadow-md lg:flex-row bg-gray-900/30 rounded-xl ">
                     <div className="relative w-[250px] h-[330px] rounded-md overflow-hidden shadow-xl cursor-pointer group hover:shadow-[0_0_15px_#00c3ff55]">
                         <img
-                        src={`http://127.0.0.1:8000${item.image}`}
+                        src={item.image}
                          className="object-cover w-full h-full transition-all duration-300 group-hover:opacity-50 group-hover:scale-105 "
                         alt={item.title}
                         />

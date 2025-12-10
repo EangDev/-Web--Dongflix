@@ -6,6 +6,8 @@ import LatestSeriesPage from "./LatestPage.jsx";
 import PopularTodayPage from './PopularToday.jsx';
 import BannerPage from './BannerPage.jsx';
 
+import KissKhPage from "../testing/KisskhPage.jsx";
+
 {/*Header and Footer Page*/}
 import HeaderPage from '../../Layouts/Header.jsx';
 import FooterPage from '../../Layouts/Footer.jsx';
@@ -21,6 +23,7 @@ export default function HomePage(){
                 <UpcomingPage />
                 <LatestSeriesPage />
                 <MoviePage />
+                {/* <KissKhPage /> */}
             </main>
 
             <FooterPage />

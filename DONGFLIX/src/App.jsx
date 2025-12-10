@@ -15,7 +15,7 @@ import WatchPage from './Components/Pages/WatchPage.jsx';
 
 function App() {
   return (
-    <Router future={{ v7_startTransition: true }}>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
         <Route path='/' element={<HomePage />} />
         <Route path='/about' element={<AboutPage />} />

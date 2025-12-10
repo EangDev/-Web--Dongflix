@@ -49,8 +49,7 @@ function HeaderPage() {
     }
 
     const results = allDonghua.filter(item => 
-      item.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
-      item.link
+      item.title.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     setFilteredDonghua(results);
@@ -59,10 +58,17 @@ function HeaderPage() {
 
   //Handle navigate to watch page
   const handleSelectAnime = (item) => {
-    if (!item.link) return;
-    navigate(`/watch?url=${encodeURIComponent(item.link)}&image=${encodeURIComponent(item.image || item.thumbnail)}`);
     setSearchQuery("");
     setShowSuggestions(false);
+
+    // If the item has a link → go to player
+    if (item.link && item.link.trim() !== "") {
+      navigate(`/watch?url=${encodeURIComponent(item.link)}&image=${encodeURIComponent(item.image || item.thumbnail)}`);
+      return;
+    }
+
+    // Otherwise → navigate to an upcoming-info page
+    navigate(`/upcoming?title=${encodeURIComponent(item.title)}`);
   };
   
   return (
@@ -91,16 +97,19 @@ function HeaderPage() {
             <FontAwesomeIcon icon={faMagnifyingGlass} />
           </button>
           {showSuggestions && (
-            <div className="absolute top-20 left-60 w-[280px] bg-[#131313]/90 rounded-md z-1000 overflow-hidden p-2">
+            <div className="absolute top-20 left-60 w-[280px] bg-[#131313]/90 rounded-sm z-1000 overflow-hidden p-2">
               {filteredDonghua.slice(0, 5).map((item, index) => (
                 <div
                     key={index}
-                    className="flex items-center gap-2.5 px-2 py-3 text-[#ccc] cursor-pointer hover:bg-[#0095c2] hover:text-white scale-[1.02] text-left"
+                    className="flex items-center gap-2.5 px-2 py-3 text-[#ccc] cursor-pointer hover:bg-[#0095c2] hover:text-white hover:rounded-md scale-[1.02] text-left"
                     onClick={() => handleSelectAnime(item)}
                   >
                   <div className="relative inline-block">
                     <img
-                    src={item.image || item.thumbnail} 
+                    src={item.image 
+                      || item.thumbnail 
+                      || item.img
+                    } 
                     alt={item.title}
                     className="object-cover w-10 rounded-sm h-14"
                     />
@@ -140,20 +149,18 @@ function HeaderPage() {
             </li>
             <li className="flex items-center space-x-1 transition-colors hover:text-white">
               {user ? (
-                <li className="flex items-center space-x-2">
+                <>
                   <div className="w-8 h-8 rounded-full bg-[#00c3ff] flex items-center justify-center text-black font-bold">
                     {user.username.charAt(0).toUpperCase()}
                   </div>
                   <Link to="/profile" className="hover:underline">
                     {user.username}
-                  </Link> 
-                </li>
-              ) : (
-                <li className="flex items-center space-x-1 transition-colors hover:text-white">
-                  <Link to="/login" className="flex items-center space-x-1 text-[#cccccc] hover:text-white">
-                    <FontAwesomeIcon icon={faUser}/> <span>Sign Up</span>
                   </Link>
-                </li>
+                </>
+              ) : (
+                <Link to="/login" className="flex items-center space-x-1 text-[#cccccc] hover:text-white">
+                  <FontAwesomeIcon icon={faUser}/> <span>Sign Up</span>
+                </Link>
               )}
             </li>
           </ul>

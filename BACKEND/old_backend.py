@@ -1,3 +1,5 @@
+#This is the api using SEATV-24 Website
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from bs4 import BeautifulSoup
@@ -28,9 +30,6 @@ MOVIE_TTL = 600
 #Cache for upcoming page
 UPCOMING_CACHE = {"data": [], "timestamp": 0}
 UPCOMING_TTL = 600
-
-KISSKH_CACHE = {"data": [], "timestamp": 0}
-KISSKH_TTL = 600
 
 #Cache for steaming method
 STREAM_CACHE = {}
@@ -328,44 +327,6 @@ def get_popular_donghua():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Scraper Error: {str(e)}")
 
-# @app.get("/api/anime/kisskh")
-# def get_kisskh_anime():
-#     try:
-#         headers = {"User-Agent": USER_AGENT}
-
-#         results = []
-#         MAX_PAGE = 36
-#         page = 1
-
-#         while page <= MAX_PAGE:
-#             url = (
-#                 f"https://kisskh.co/api/DramaList/List?"
-#                 f"page={page}&type=3&sub=0&country=1&status=0&order=2"
-#             )
-
-#             res = requests.get(url, headers=headers)
-#             if res.status_code != 200:
-#                 break
-
-#             data = res.json()
-#             items = data.get("data", [])
-#             if not items:
-#                 break
-
-#             results.extend(items)
-
-#             total_count = data.get("totalCount", 0)
-#             # Stop if we have fetched all items
-#             if len(results) >= total_count:
-#                 break
-
-#             page += 1
-
-#         return {"count": len(results), "results": results}
-
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"KissKH Error: {str(e)}")
-
 @app.get("/api/anime/latest")
 def get_latest_donghua():
     try:
@@ -481,6 +442,127 @@ def get_movies_donghua():
         raise HTTPException(status_code=500, detail="Invalid JSON format in movies.json")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unexpected Error: {str(e)}")
+    
+    # This is the movie api i get from lucifer donghua 
+    # try:
+    #     headers = {"User-Agent": USER_AGENT}
+        
+    #     if time.time() - MOVIE_CACHE["timestamp"] < MOVIE_TTL:
+    #         return{
+    #             "count": len(MOVIE_CACHE["data"]),
+    #             "data": MOVIE_CACHE["data"]
+    #         }
+        
+    #     res = requests.get(LUCIFER_URL, headers=headers)
+    #     if res.status_code != 200:
+    #         raise HTTPException(status_code=404, detail="Error Fetching Movie API")
+        
+    #     soup = BeautifulSoup(res.text, "html.parser")
+    #     movie_section = soup.select_one("div.listupd.flex div.excstf")
+    #     if not movie_section:
+    #         raise HTTPException(status_code=404, detail="Failed To Fetch the api")
+        
+    #     items = movie_section.select("article.stylefor")
+    #     movies_list = []
+        
+    #     for item in items:
+    #         link_tag = item.select_one("a.tip")
+    #         if not link_tag:
+    #             continue
+            
+    #         title = link_tag.get("title", "").strip()
+    #         link = link_tag.get("href", "#").strip()
+
+    #         clean_title = re.sub(r"\s*Episode\s*\d+.*", "", title, flags=re.IGNORECASE).strip()
+            
+    #         img_tag = item.select_one("img")
+    #         image = (
+    #             img_tag.get("data-srcset")
+    #             or img_tag.get("data-src")
+    #             or img_tag.get("src")
+    #             or ""
+    #         )
+
+    #         movies_list.append({
+    #             "title": clean_title,
+    #             "link": link,
+    #             "image": image
+    #         })
+            
+    #     POPULAR_CACHE["data"] = movies_list
+    #     POPULAR_CACHE["timestamp"] = time.time()
+        
+    #     return {"count": len(movies_list), "results": movies_list}
+    
+    # except Exception as e:
+    #     raise HTTPException(status_code=500, detail=f"Scraper Error: {str(e)}")
+        
+    #     movies_list = []
+    #     page = 1
+        
+    #     while True:
+    #         url = f"{LUCIFER_URL}/page/{page}/" if page > 1 else LUCIFER_URL
+    #         res = requests.get(url, headers=headers)
+    #         if res.status_code != 200:
+    #             break
+            
+    #         soup = BeautifulSoup(res.text, "html.parser")
+    #         movie_section = soup.select_one(
+    #             "div.listupd.flex div.excstf"
+    #         )
+            
+    #         if not movie_section:
+    #             break
+            
+    #         items = movie_section.select(
+    #             "article.stylefor"
+    #         )
+    #         if not items:
+    #             break
+            
+    #         for item in items:
+    #             link_tag = item.select_one("a.tip")
+    #             if not link_tag:
+    #                 continue
+                
+    #             title = link_tag.get("title", "").strip()
+    #             link = link_tag.get("href", "").strip()
+                
+    #             img_tag = item.select_one("img")
+    #             image = (
+    #                 img_tag.get("data-srcset")
+    #                 or img_tag.get("data-src")
+    #                 or img_tag.get("src")
+    #                 or ""
+    #             )
+                
+    #             clean_title = re.sub(
+    #                 r'\s*Episode\s*\d+.*', '', title, flags=re.IGNORECASE
+    #             ).strip()
+
+    #             movies_list.append({
+    #                 "title": clean_title,
+    #                 "link": link,
+    #                 "image": image
+    #             })
+
+    #         page += 1
+    #         time.sleep(0.3)
+
+    #     # Save to cache
+    #     MOVIE_CACHE["data"] = movies_list
+    #     MOVIE_CACHE["timestamp"] = time.time()
+
+    #     return {
+    #         "count": len(movies_list),
+    #         "data": movies_list
+    #     }
+
+    # except requests.exceptions.RequestException as e:
+    #     raise HTTPException(status_code=500, detail=f"Request Error: {str(e)}")
+
+    # except Exception as err:
+    #     raise HTTPException(status_code=500, detail=f"Scraper Error: {str(err)}")
 
 @app.get("/api/anime/search")
 def get_search(q: str = ""):

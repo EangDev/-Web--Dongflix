@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronRight, faCirclePlay } from '@fortawesome/free-solid-svg-icons';
 
 import loadingIMG from "@/assets/Loading/loadings.gif";
 
 function PopularToday() {
+  const navigate = useNavigate();
   const [popularDong, setPopularDong] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -22,6 +24,14 @@ function PopularToday() {
     };
     fetchPopular();
   }, []);
+
+  const handleDetail = (item) => {
+    if(!item.link){
+      alert("Videos URL not available for this anime!");
+      return;
+    }
+    navigate(`/watch?url=${encodeURIComponent(item.link)}&image=${encodeURIComponent(item.image || item.thumbnail)}`);
+  }
 
   return (
     <>
@@ -51,7 +61,7 @@ function PopularToday() {
           <div className="w-[90%] mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-12">
             {popularDong.map((item, index) => (
               <div key={index} className="relative flex flex-col items-center cursor-pointer group">
-                <div className="relative w-[200px] h-[250px] overflow-hidden rounded-md bg-[#111] hover:shadow-[0_0_15px_#00c3ff55]">
+                <div className="relative w-[200px] h-[250px] overflow-hidden rounded-md bg-[#111] hover:shadow-[0_0_15px_#00c3ff55]" onClick={() => handleDetail(item)}>
                   <img
                     className="object-cover w-full h-full transition-all duration-300 group-hover:opacity-50 group-hover:scale-105"
                     src={item.image}
@@ -68,7 +78,7 @@ function PopularToday() {
                     {item.type || "?"}
                   </p>
                 </div>
-                <p className="mt-2 text-center text-sm text-[#ccc] transition-colors duration-300 group-hover:text-[#00c3ff] w-[200px]">
+                <p className="mt-2 text-center text-sm text-[#ccc] transition-colors duration-300 group-hover:text-[#00c3ff] w-[200px]" onClick={() => handleDetail(item)}>
                   {item.title}
                 </p>
               </div>
