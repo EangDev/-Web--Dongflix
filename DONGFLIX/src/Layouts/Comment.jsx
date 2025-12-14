@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCircleExclamation } from "@fortawesome/free-solid-svg-icons";
 
 
-export default function Components(){
+export default function Comments(){
     return(
         <section className="justify-center w-full p-5 text-center">
             <div className="flex justify-center w-full h-12 text-center bg-[#00a6c7] rounded-md py-3">

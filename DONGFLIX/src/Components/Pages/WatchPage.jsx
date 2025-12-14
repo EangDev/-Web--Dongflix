@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faHeart } from "@fortawesome/free-solid-svg-icons";
+import { faHeart, faSquare } from "@fortawesome/free-solid-svg-icons";
 
 import HeaderPage from "../../Layouts/Header";
 import FooterPage from "../../Layouts/Footer";
-import Components from "../../Layouts/Comment";
+import Comments from "../../Layouts/Comment";
 import loadingIMG from "@/assets/Loading/loadings.gif";
 
 
@@ -20,8 +20,8 @@ export default function WatchPage() {
   const [loading, setLoading] = useState(true);
   const [titleDetails, setTitleDetails] = useState({
     title: "",
-    releaseDate: "",
     postedBy: "Dongflix",
+    fanSub: "Dongflix",
     series: "",
     image: initialImage || "",
     description: "",
@@ -71,15 +71,25 @@ export default function WatchPage() {
           setTitleDetails(prev => ({
             ...prev,
             title: detailData.title,
-            releaseDate: detailData.release_date,
+            chinese_name: detailData.chinese_name,
+            release_date: detailData.details?.released,
             series: detailData.series_title,
+            genres: detailData.genres,
             image: detailData.image || prev.image,
             description: detailData.description,
+
+            episode_release_date: detailData.release_date,
+
+            // details
             status: detailData.details?.status,
+            network: detailData.details?.network,
+            duration: detailData.details?.duration,
+            country: detailData.details?.country,
             type: detailData.details?.type,
             episodes: detailData.details?.episodes,
-            studio: detailData.details?.studio,
-            duration: detailData.details?.duration,
+            season: detailData.details?.season,
+            censor: detailData.details?.censor,
+            related_Ep: detailData.related,
           }));
         }
 
@@ -209,7 +219,7 @@ export default function WatchPage() {
       <section className="w-full mt-35 px-6 py-6 md:px-16 rounded-2xl relative bg-linear-to-b from-[#050505] via-[#111] to-[#0c0c0c] shadow-lg">
         <h3 className="text-3xl font-extrabold">{titleDetails.title || "Loading..."}</h3>
         <p className="pt-2 text-md">
-          Released on <span className="text-blue-400">{titleDetails.releaseDate}</span>. Posted by{" "}
+          Released on <span className="text-blue-400">{titleDetails.release_date}</span>. Posted by{" "}
           <Link to="/" className="text-blue-400">{titleDetails.postedBy}</Link>. Series:{" "}
           <span className="text-blue-400">{titleDetails.series}</span>
         </p>
@@ -283,17 +293,37 @@ export default function WatchPage() {
           </div>
           <div className="flex-1 px-5 mt-6 text-left md:mt-0">
             <h2 className="text-3xl font-bold">{titleDetails.title}</h2>
-            <div className="grid grid-cols-1 mt-10 text-sm sm:grid-cols-2 gap-y-2 opacity-90">
-              <ul className="space-y-5">
-                <li>Status: {titleDetails.status}</li>
-                <li>Release: {titleDetails.releaseDate}</li>
-                <li>Type: {titleDetails.type}</li>
+            <h2 className="text-xl">{titleDetails.chinese_name}</h2>
+            <div className="grid grid-cols-1 mt-5 text-sm sm:grid-cols-2 gap-y-2 opacity-90">
+              <ul className="space-y-2">
+                <li><FontAwesomeIcon icon={faSquare} className="px-2 text-green-300"/>Status: {titleDetails.status}</li>
+                <li><FontAwesomeIcon icon={faSquare} className="px-2 text-green-300"/>Released: {titleDetails.release_date || "Unknown"}</li>
+                <li><FontAwesomeIcon icon={faSquare} className="px-2 text-green-300"/>Season: {titleDetails.season || "?"}</li>
+                <li><FontAwesomeIcon icon={faSquare} className="px-2 text-green-300"/>Type: {titleDetails.type}</li>
+                <li><FontAwesomeIcon icon={faSquare} className="px-2 text-green-300"/>Fansub: {titleDetails.fanSub}</li>
               </ul>
-              <ul className="space-y-5">
-                <li>Studio: {titleDetails.studio}</li>
-                <li>Duration: {titleDetails.duration}</li>
-                <li>Episodes: {titleDetails.episodes || episodes.length}</li>
+              <ul className="space-y-2">
+                <li><FontAwesomeIcon icon={faSquare} className="px-2 text-green-300"/>Network: {titleDetails.network || "Unknown"}</li>
+                <li><FontAwesomeIcon icon={faSquare} className="px-2 text-green-300"/>Duration: {titleDetails.duration}</li>
+                <li><FontAwesomeIcon icon={faSquare} className="px-2 text-green-300"/>Country: {titleDetails.country}</li>
+                <li><FontAwesomeIcon icon={faSquare} className="px-2 text-green-300"/>Episode: {titleDetails.episodes || episodes.length}</li>
+                <li><FontAwesomeIcon icon={faSquare} className="px-2 text-green-300"/>Censor: {titleDetails.censor || "Censored"}</li>
               </ul>
+              {/*  Genre */}
+              <div className="flex flex-wrap gap-2 mt-4">
+                {titleDetails.genres?.length > 0 ? (
+                  titleDetails.genres.map((genre, i) => (
+                    <span
+                      key={i}
+                      className="px-3 py-1 text-xs text-green-300 transition-all bg-gray-800 border rounded-full cursor-pointer border-green-300/40 hover:bg-green-300 hover:text-black"
+                    >
+                      {genre}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-gray-400">No genres available</span>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -311,7 +341,7 @@ export default function WatchPage() {
           {showFullDescription ? "Hide" : "More"}
         </button>
         
-        <Components />
+        <Comments />
       </div>
       <FooterPage />
     </div>
