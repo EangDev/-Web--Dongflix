@@ -32,6 +32,10 @@ UPCOMING_TTL = 600
 KISSKH_CACHE = {"data": [], "timestamp": 0}
 KISSKH_TTL = 600
 
+#Cache for recommended series
+RECOMMENDED_CACHE = {"data": [], "timestamp": 0}
+RECOMMENDED_TTL = 600
+
 #Cache for steaming method
 STREAM_CACHE = {}
 STREAM_TTL = 600
@@ -482,6 +486,78 @@ def get_movies_donghua():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unexpected Error: {str(e)}")
 
+@app.get("/api/anime/recommended")
+def get_recommended_series():
+    try:
+        headers = {"User-Agent": USER_AGENT}
+        
+        if time.time() - RECOMMENDED_CACHE["timestamp"] < RECOMMENDED_TTL:
+            return {
+                "count": len(RECOMMENDED_CACHE["data"]),
+                "data": RECOMMENDED_CACHE["data"]
+            }
+        
+        res = requests.get(SEATV_URL, headers=headers)
+        if res.status_code != 200:
+            raise HTTPException(status_code=404, detail="Failed to load API")
+        
+        soup = BeautifulSoup(res.text, "html.parser")
+        recommended_section = soup.select_one("div.bixbox div.listupd")
+        
+        if not recommended_section:
+            raise HTTPException(status_code=404, detail="Failed To Fetch the api")
+        
+        items = recommended_section.select("article.bs")
+        results = []
+        
+        for item in items:
+            link_tag = item.select_one("a.tip")
+            if not link_tag:
+                continue
+            
+            title = link_tag.get("title", "").strip()
+            link = link_tag.get("href", "#").strip()
+            
+            ep_match = re.search(r"(Episode|Ep)\s*(\d+)", title, re.IGNORECASE)
+            episode = ep_match.group(2) if ep_match else None
+                
+            if episode is None:
+                ep_span = item.select_one("span.epx")
+                if ep_span:
+                    ep_match = re.search(r"\d+", ep_span.get_text(strip=True))
+                    episode = ep_match.group(0) if ep_match else None
+                                
+            clean_title = re.sub(r"(Episode|Ep)\s*\d+", "", title, flags=re.IGNORECASE)
+            clean_title = re.sub(r"\[.*?\]|\bSubtitle\b", "", clean_title, flags=re.IGNORECASE)
+            clean_title = clean_title.strip()
+            
+            img_tag = item.select_one("img")
+            image = (
+                img_tag.get("data-srcset")
+                or img_tag.get("data-src")
+                or img_tag.get("src")
+                or ""
+            )
+            
+            type_tag = item.select_one("div.typez")
+            donghua_type = type_tag.get_text(strip=True) if type_tag else "Unknown"
+            
+            results.append({
+                "title": clean_title,
+                "episode": episode,
+                "type": donghua_type,
+                "link": link,
+                "image": image
+            })    
+        
+        RECOMMENDED_CACHE["data"] = results
+        RECOMMENDED_CACHE["timestamp"] = time.time()
+        
+        return {"count": len(results), "results": results}
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Scraper Error: {str(e)}")
+        
 @app.get("/api/anime/search")
 def get_search(q: str = ""):
     try:

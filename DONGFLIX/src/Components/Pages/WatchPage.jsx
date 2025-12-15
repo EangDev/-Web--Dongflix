@@ -8,6 +8,7 @@ import FooterPage from "../../Layouts/Footer";
 import Comments from "../../Layouts/Comment";
 import loadingIMG from "@/assets/Loading/loadings.gif";
 
+import RecommendedPage from "./Section/RecommendedPage";
 
 export default function WatchPage() {
   const navigate = useNavigate();
@@ -341,6 +342,7 @@ export default function WatchPage() {
           {showFullDescription ? "Hide" : "More"}
         </button>
         
+        <RecommendedPage />
         <Comments />
       </div>
       <FooterPage />
