@@ -16,9 +16,9 @@ export default function KissKhPage() {
     useEffect(() => {
         const fetchData = async () => {
         try {
-            const res = await fetch("http://127.0.0.1:8000/api/anime/kisskh");
+            const res = await fetch("http://127.0.0.1:8000/api/anime/twod");
             const json = await res.json();
-            setLatest(json.results || []);
+            setLatest(json.data || []);
         } catch (err) {
             console.error("Error", err);
         }finally{
@@ -76,7 +76,7 @@ export default function KissKhPage() {
                                 <div className="relative w-[200px] h-[250px] overflow-hidden rounded-md bg-[#111] hover:shadow-[0_0_15px_#00c3ff55]">
                                 <img
                                     className="object-cover w-full h-full transition-all duration-300 group-hover:opacity-50 group-hover:scale-105"
-                                    src={item.thumbnail}
+                                    src={item.image}
                                     alt={item.title}
                                 />
                                 <FontAwesomeIcon
@@ -84,7 +84,7 @@ export default function KissKhPage() {
                                     className="absolute text-5xl text-[#00c3ff] opacity-0 group-hover:opacity-100 transition-all duration-300 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
                                 />
                                 <p className="absolute top-2 right-2 bg-[#0093c2e6] text-white font-bold text-xs px-2 py-1 rounded-md">
-                                    EP {item.episodesCount || "?"}
+                                    EP {item.episode || "?"}
                                 </p>
                                 </div>
                                 <p className="mt-2 text-center text-sm text-[#ccc] transition-colors duration-300 group-hover:text-[#00c3ff] w-[200px]">

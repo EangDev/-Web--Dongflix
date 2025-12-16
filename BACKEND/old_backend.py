@@ -602,6 +602,44 @@ def get_search(q: str = ""):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Search error: {str(e)}")
 
+# @app.get("/api/anime/kisskh")
+# def get_kisskh_anime():
+#     try:
+#         headers = {"User-Agent": USER_AGENT}
+
+#         results = []
+#         MAX_PAGE = 36
+#         page = 1
+
+#         while page <= MAX_PAGE:
+#             url = (
+#                 f"https://kisskh.co/api/DramaList/List?"
+#                 f"page={page}&type=3&sub=0&country=1&status=0&order=2"
+#             )
+
+#             res = requests.get(url, headers=headers)
+#             if res.status_code != 200:
+#                 break
+
+#             data = res.json()
+#             items = data.get("data", [])
+#             if not items:
+#                 break
+
+#             results.extend(items)
+
+#             total_count = data.get("totalCount", 0)
+#             # Stop if we have fetched all items
+#             if len(results) >= total_count:
+#                 break
+
+#             page += 1
+
+#         return {"count": len(results), "results": results}
+
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"KissKH Error: {str(e)}")
+
 @app.get("/api/anime/detail")
 def get_detail(url: str):
     try:
@@ -854,3 +892,161 @@ def get_episodes(url: str):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Episode fetch error: {str(e)}")
+
+# @app.get("/api/anime/latest")
+# def get_latest_donghua():
+#     try:
+#         headers = {"User-Agent": USER_AGENT}
+
+#         if time.time() - LATEST_CACHE["timestamp"] < LATEST_TTL:
+#             return {
+#                 "count": len(LATEST_CACHE["data"]),
+#                 "data": LATEST_CACHE["data"]
+#             }
+
+#         results = []
+#         MAX_PAGE = 12
+#         page = 1
+
+#         while page <= MAX_PAGE:
+#             url = f"{SEATV_URL}/page/{page}/" if page > 1 else SEATV_URL
+#             res = requests.get(url, headers=headers)
+#             if res.status_code != 200:
+#                 break
+
+#             soup = BeautifulSoup(res.text, "html.parser")
+#             latest_section = soup.select_one("div.listupd.normal div.excstf")
+#             if not latest_section:
+#                 break
+
+#             items = latest_section.select("article.bs")
+#             if not items:
+#                 break
+
+#             for item in items:
+#                 link_tag = item.select_one("a.tip")
+#                 if not link_tag:
+#                     continue
+
+#                 title = link_tag.get("title", "").strip()
+#                 link = link_tag.get("href", "").strip()
+                
+#                 ep_match = re.search(r"(Episode|Ep)\s*(\d+)", title, re.IGNORECASE)
+#                 episode = ep_match.group(2) if ep_match else None
+                
+#                 if episode is None:
+#                     ep_span = item.select_one("span.epx")
+#                     if ep_span:
+#                         ep_match = re.search(r"\d+", ep_span.get_text(strip=True))
+#                         episode = ep_match.group(0) if ep_match else None
+                                
+#                 clean_title = re.sub(r"(Episode|Ep)\s*\d+", "", title, flags=re.IGNORECASE)
+#                 clean_title = re.sub(r"\[.*?\]|\bSubtitle\b", "", clean_title, flags=re.IGNORECASE)
+#                 clean_title = clean_title.strip()
+                
+#                 img_tag = item.select_one("img")
+#                 image = (
+#                     img_tag.get("data-srcset")
+#                     or img_tag.get("data-src")
+#                     or img_tag.get("src")
+#                     or ""
+#                 )
+                
+#                 type_tag = item.select_one("div.typez")
+#                 donghua_type = type_tag.get_text(strip=True) if type_tag else "Unknown"
+                
+#                 results.append({
+#                     "title": clean_title,
+#                     "episode": episode,
+#                     "type": donghua_type,
+#                     "link": link,
+#                     "image": image
+#                 })
+
+#             page += 1
+#             time.sleep(0.3)
+
+#         # Save to cache
+#         LATEST_CACHE["data"] = results
+#         LATEST_CACHE["timestamp"] = time.time()
+
+#         return {
+#             "count": len(results),
+#             "data": results
+#         }
+
+#     except requests.exceptions.RequestException as e:
+#         raise HTTPException(status_code=500, detail=f"Request Error: {str(e)}")
+
+#     except Exception as err:
+#         raise HTTPException(status_code=500, detail=f"Scraper Error: {str(err)}")
+
+
+# @app.get("/api/anime/popular")
+# def get_popular_donghua():
+#     try:
+#         headers = {"User-Agent": USER_AGENT}
+        
+#         if time.time() - POPULAR_CACHE["timestamp"] < POPULAR_TTL:
+#             return {"count": len(POPULAR_CACHE["data"]), "results": POPULAR_CACHE["data"]}
+        
+#         res = requests.get(SEATV_URL, headers=headers)
+#         if res.status_code != 200:
+#             raise HTTPException(status_code=404, detail="Failed to load API")
+        
+#         soup = BeautifulSoup(res.text, "html.parser")
+#         popular_section = soup.select_one("div.listupd.popularslider")
+        
+#         if not popular_section:
+#             raise HTTPException(status_code=404, detail="Failed To Fetch the api")
+        
+#         items = popular_section.select("article.bs")
+#         results = []
+        
+#         for item in items:
+#             link_tag = item.select_one("a.tip")
+#             if not link_tag:
+#                 continue
+            
+#             title = link_tag.get("title", "").strip()
+#             link = link_tag.get("href", "#").strip()
+            
+#             ep_match = re.search(r"(Episode|Ep)\s*(\d+)", title, re.IGNORECASE)
+#             episode = ep_match.group(2) if ep_match else None
+                
+#             if episode is None:
+#                 ep_span = item.select_one("span.epx")
+#                 if ep_span:
+#                     ep_match = re.search(r"\d+", ep_span.get_text(strip=True))
+#                     episode = ep_match.group(0) if ep_match else None
+                                
+#             clean_title = re.sub(r"(Episode|Ep)\s*\d+", "", title, flags=re.IGNORECASE)
+#             clean_title = re.sub(r"\[.*?\]|\bSubtitle\b", "", clean_title, flags=re.IGNORECASE)
+#             clean_title = clean_title.strip()
+            
+#             img_tag = item.select_one("img")
+#             image = (
+#                 img_tag.get("data-srcset")
+#                 or img_tag.get("data-src")
+#                 or img_tag.get("src")
+#                 or ""
+#             )
+            
+#             type_tag = item.select_one("div.typez")
+#             donghua_type = type_tag.get_text(strip=True) if type_tag else "Unknown"
+            
+#             results.append({
+#                 "title": clean_title,
+#                 "episode": episode,
+#                 "type": donghua_type,
+#                 "link": link,
+#                 "image": image
+#             })
+            
+#         POPULAR_CACHE["data"] = results
+#         POPULAR_CACHE["timestamp"] = time.time()
+        
+#         return {"count": len(results), "results": results}
+    
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Scraper Error: {str(e)}")

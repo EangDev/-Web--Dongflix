@@ -5,8 +5,8 @@ import MoviePage from './MoviePage.jsx';
 import LatestSeriesPage from "./LatestPage.jsx";
 import PopularTodayPage from './PopularToday.jsx';
 import BannerPage from './BannerPage.jsx';
-
-import KissKhPage from "../testing/KisskhPage.jsx";
+import TrendingPage from "./TrendingPage.jsx";
+import TwoDPage from "./TwoDPage.jsx";
 
 {/*Header and Footer Page*/}
 import HeaderPage from '../../Layouts/Header.jsx';
@@ -19,11 +19,12 @@ export default function HomePage(){
             <BannerPage />
             
             <main className="grow">
+                <TrendingPage />
                 <PopularTodayPage />
                 <UpcomingPage />
                 <LatestSeriesPage />
                 <MoviePage />
-                {/* <KissKhPage /> */}
+                <TwoDPage />
             </main>
 
             <FooterPage />

@@ -94,10 +94,10 @@ export default function LatestPage(){
                                 className="absolute text-5xl text-[#00c3ff] opacity-0 group-hover:opacity-100 transition-all duration-300 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
                               />
                               <p className="absolute top-2 right-2 bg-[#0093c2e6] text-white font-bold text-xs px-2 py-1 rounded-md">
-                                EP {item.episode || "?"}
-                              </p>
-                              <p className="absolute top-2 left-2 bg-[#fd8700e6] text-white font-bold text-xs px-2 py-1 rounded-md">
                                 {item.type || "?"}
+                              </p>
+                              <p className="max-w-full absolute top-2 left-2 bg-[#fd8700e6] text-white font-bold text-xs px-2 py-1 rounded-md">
+                                {item.status || "?"}
                               </p>
                             </div>
                             <p className="mt-2 text-center text-sm text-[#ccc] transition-colors duration-300 group-hover:text-[#00c3ff] w-[200px]" onClick={() => handleDetail(item)}>
