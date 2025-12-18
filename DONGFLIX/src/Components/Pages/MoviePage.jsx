@@ -51,7 +51,7 @@ export default function MoviePage(){
         alert("Videos URL not available for this anime!");
         return;
       }
-      navigate(`/watch?url=${encodeURIComponent(item.link)}&image=${encodeURIComponent(item.image || item.thumbnail)}`);
+      navigate(`/watch?anime=${encodeURIComponent(item.link)}&image=${encodeURIComponent(item.image || item.thumbnail)}`);
     }
     
     return(
@@ -61,7 +61,7 @@ export default function MoviePage(){
                     <img className="w-[150px] h-[150px] object-cover" src={loadingIMG} alt="Loading..." />
                 </div>
             )}
-            <section className="relative min-h-screen mx-auto pt-25 max-w-7xl bg-linear-to-b from-[#050505] via-[#111] to-[#0a0a0a] rounded-2xl overflow-hidden">
+            <section className="relative min-h-screen mx-auto pt-15 max-w-7xl bg-linear-to-b from-[#050505] via-[#111] to-[#0a0a0a] rounded-2xl overflow-hidden">
                 <div className="absolute inset-0">
                     <div className="absolute w-[500px] h-[500px] bg-blue-500/20 rounded-full blur-[120px] top-[-10%] left-[-10%] animate-pulse"></div>
                     <div className="absolute w-[400px] h-[400px] bg-purple-500/20 rounded-full blur-[130px] bottom-[-10%] right-[-10%] animate-pulse"></div>

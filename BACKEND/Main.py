@@ -335,7 +335,7 @@ def get_popular_donghua():
 
             anime_type = item.select_one("div.typez")
             type = anime_type.text.strip() if anime_type else "Unknown"
-
+            
             results.append({
                 "title": clean_title,
                 "episode": episode,
@@ -830,71 +830,54 @@ def get_detail(url: str):
 
 @app.get("/api/anime/stream")
 def get_streaming(url: str):
+    now = time.time()
+    if url in STREAM_CACHE and now - STREAM_CACHE[url]["timestamp"] < STREAM_TTL:
+        return STREAM_CACHE[url]["data"]
+    
+    headers = {"User-Agent": USER_AGENT}
     try:
-        headers = {"User-Agent": USER_AGENT}
-        
-        if url in STREAM_CACHE and time.time() - STREAM_CACHE[url]["ts"] < STREAM_TTL:
-            return STREAM_CACHE[url]["data"]
-
         res = requests.get(url, headers=headers)
         if res.status_code != 200:
             raise HTTPException(status_code=404, detail="Failed to fetch streaming page")
-
+        
         soup = BeautifulSoup(res.text, "html.parser")
         
-        iframe = soup.select_one("iframe")
-        stream_url = None
-
-        if iframe:
-            stream_url = (
-                iframe.get("data-src")
-                or iframe.get("src")
-                or None
-            )
-        if stream_url and stream_url.startswith("data:image"):
-            try:
-                encoded = stream_url.split(",", 1)[1]
-                decoded = base64.b64decode(encoded).decode("utf-8")
-
-                # Extract real URL inside the iframe HTML
-                inner = BeautifulSoup(decoded, "html.parser").select_one("iframe")
-                stream_url = (
-                    inner.get("src")
-                    or inner.get("data-src")
-                    or None
-                )
-            except:
-                pass
-            
-        if not stream_url:
-            raise HTTPException(status_code=404, detail="No playable stream found")
-
-        # Make full URL if relative
-        if stream_url.startswith("//"):
-            parsed = urlparse(url)
-            stream_url = f"{parsed.scheme}:{stream_url}"
-        elif stream_url.startswith("/"):
-            stream_url = urljoin(url, stream_url)
-
-        final_result = {
-            "source": stream_url
-        }
-
-        STREAM_CACHE[url] = {
-            "data": final_result,
-            "ts": time.time()
-        }
-
-        return final_result
-
+        servers = {}
+        select = soup.select_one("select.mirror")
+        if select:
+            options = select.select("option")
+            for opt in options:
+                value = opt.get("value")
+                server_name = opt.text.strip()
+                if value:
+                    try:
+                        decoded = base64.b64decode(value).decode("utf-8")
+                        iframe_soup = BeautifulSoup(decoded, "html.parser")
+                        iframe = iframe_soup.find("iframe")
+                        if iframe and iframe.get("src"):
+                            servers[server_name] = iframe.get("src")
+                    except Exception:
+                        continue
+        
+        if not servers:
+            iframe = soup.find("iframe")
+            if iframe and iframe.get("src"):
+                servers["Default"] = iframe.get("src")
+        
+        if not servers:
+            raise HTTPException(status_code=404, detail="No streaming servers found")
+        
+        result = {"servers": servers}
+        STREAM_CACHE[url] = {"data": result, "timestamp": now}
+        return result
+    
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Stream fetch error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Streaming fetch error: {str(e)}")
 
 @app.get("/api/anime/episodes")
 def get_episodes(url: str):
     try:
         headers = {"User-Agent": USER_AGENT}
-        
         if url in EPISODES_CACHE and (time.time() - EPISODES_CACHE[url]["ts"] < EPISODES_TTL):
             return EPISODES_CACHE[url]["data"]
 
@@ -904,41 +887,33 @@ def get_episodes(url: str):
 
         soup = BeautifulSoup(res.text, "html.parser")
 
-        episode_items = soup.select("li[data-id] a")
+        episode_items = soup.select("div.episodelist li[data-id] > a")
         if not episode_items:
             raise HTTPException(status_code=404, detail="Episode list not found")
 
         episodes = []
 
         for ep in episode_items:
-            link = ep.get("href")
-            title_block = ep.select_one("h3")
+            link = ep.get("href", "")
+
+            title_block = ep.select_one("h4")
             title = title_block.get_text(strip=True) if title_block else ""
+            
+            match = re.search(r"Episode\s*(\d+)", title, re.IGNORECASE)
+            number = int(match.group(1)) if match else None
 
-            ep_match = re.search(r"Episode\s*(\d+)", title, re.IGNORECASE)
-            number = int(ep_match.group(1)) if ep_match else None
-
-            # Thumbnail
-            img_tag = ep.select_one("img")
-            image = (
-                img_tag.get("data-src")
-                or img_tag.get("src")
-                or ""
-            )
-
-            # Clean title
-            clean_title = re.sub(r"\s*Episode\s*\d+.*", "", title, flags=re.IGNORECASE).strip()
+            img = ep.select_one("img")
+            image = img.get("data-src") or img.get("src") if img else ""
 
             episodes.append({
                 "episode_number": number,
-                "title": clean_title,
+                "title": re.sub(r"\s*Episode\s*\d+.*", "", title, flags=re.IGNORECASE),
                 "raw_title": title,
                 "link": link,
                 "image": image
             })
 
-        # Sort newest → oldest
-        episodes = sorted(episodes, key=lambda x: x["episode_number"] or 0, reverse=True)
+        episodes.sort(key=lambda x: x["episode_number"] or 0, reverse=True)
 
         result = {
             "count": len(episodes),

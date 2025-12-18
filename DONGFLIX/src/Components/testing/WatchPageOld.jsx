@@ -12,20 +12,13 @@ import RecommendedPage from "./Section/RecommendedPage";
 
 export default function WatchPage() {
   const navigate = useNavigate();
-  const [params] = useSearchParams();
-  
-  const animeUrl = params.get("anime");
-  const episodeUrl = params.get("ep");
+  const [params, setParams] = useSearchParams();
+
+  const initialEp = parseInt(params.get("ep")) || null;
+  const initialUrl = params.get("url");
   const initialImage = params.get("image");
 
   const [loading, setLoading] = useState(true);
-  const [episodes, setEpisodes] = useState([]);
-  const [servers, setServers] = useState({});
-  const [currentServer, setCurrentServer] = useState(null);
-  const [selectedEpisode, setSelectedEpisode] = useState(null);
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
-  
   const [titleDetails, setTitleDetails] = useState({
     title: "",
     postedBy: "Dongflix",
@@ -34,116 +27,183 @@ export default function WatchPage() {
     image: initialImage || "",
     description: "",
   });
-  
+
+  const [episodes, setEpisodes] = useState([]);
+  const [servers, setServers] = useState({});
+  const [currentServer, setCurrentServer] = useState(null);
+  const [serverCache, setServerCache] = useState({});
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [selectedEpisode, setSelectedEpisode] = useState(null);
+  const hasSetDefaultEpisode = useRef(false);
+
   const [showFullDescription, setShowFullDescription] = useState(false);
 
   const EPISODES_PER_PAGE = 30;
 
   // Fetch episodes, details, and stream
   useEffect(() => {
-    if (!animeUrl) return;
+    if (!initialUrl) return;
 
     setLoading(true);
+    hasSetDefaultEpisode.current = false;
 
-    async function loadAnime() {
+    async function loadData() {
       try {
-        const epRes = await fetch(
-          `http://127.0.0.1:8000/api/anime/episodes?url=${encodeURIComponent(animeUrl)}`
-        );
-        const detailRes = await fetch(
-          `http://127.0.0.1:8000/api/anime/detail?url=${encodeURIComponent(animeUrl)}`
-        );
-
-        if (!epRes.ok || !detailRes.ok) {
-          throw new Error("Anime fetch failed");
-        }
+        const [epRes, detailRes, streamRes] = await Promise.all([
+          fetch(`http://127.0.0.1:8000/api/anime/episodes?url=${encodeURIComponent(initialUrl)}`),
+          fetch(`http://127.0.0.1:8000/api/anime/detail?url=${encodeURIComponent(initialUrl)}`),
+          fetch(`http://127.0.0.1:8000/api/anime/stream?url=${encodeURIComponent(initialUrl)}`)
+        ]);
 
         const epData = await epRes.json();
         const detailData = await detailRes.json();
+        const streamData = await streamRes.json();
 
-        setEpisodes(epData.episodes || []);
-
-        setTitleDetails(prev => ({
-          ...prev,
-          title: detailData.title,
-          chinese_name: detailData.chinese_name,
-          series: detailData.series_title,
-          image: detailData.image,
-          description: detailData.description,
-          release_date: detailData.release_date,
-          status: detailData.details?.status,
-          network: detailData.details?.network,
-          duration: detailData.details?.duration,
-          season: detailData.details?.season,
-          episodes: detailData.details?.episodes,
-          type: detailData.details?.type,
-          genres: detailData.genres,
+        const list = (epData.episodes || []).map((ep) => ({
+          ...ep,
+          episode_number: Number(ep.episode_number),
+          url: ep.link
         }));
+
+        setEpisodes(list);
+
+        if (detailData.title) {
+          setTitleDetails(prev => ({
+            ...prev,
+            title: detailData.title,
+            chinese_name: detailData.chinese_name,
+            release_date: detailData.details?.released,
+            series: detailData.series_title,
+            genres: detailData.genres,
+            image: detailData.image || prev.image,
+            description: detailData.description,
+
+            episode_release_date: detailData.release_date,
+
+            // details
+            status: detailData.details?.status,
+            network: detailData.details?.network,
+            duration: detailData.details?.duration,
+            country: detailData.details?.country,
+            type: detailData.details?.type,
+            episodes: detailData.details?.episodes,
+            season: detailData.details?.season,
+            censor: detailData.details?.censor,
+            related_Ep: detailData.related,
+          }));
+        }
+
+        if (streamData.servers) {
+          setServers(streamData.servers);
+          setCurrentServer(Object.values(streamData.servers)[0]);
+        }
       } catch (err) {
-        console.error("Anime load error:", err);
+        console.error("Failed to load:", err);
       } finally {
-        setLoading(false); // ✅ ALWAYS RUNS
+        setLoading(false);
       }
     }
 
-    loadAnime();
-  }, [animeUrl]);
+    loadData();
+  }, [initialUrl]);
 
-  useEffect(() => {
-    if (!episodeUrl) return;
-    
-    fetch(`http://127.0.0.1:8000/api/anime/stream?url=${encodeURIComponent(episodeUrl)}`)
-      .then(res => res.json())
-      .then(data => {
-        const first = Object.values(data.servers || {})[0];
-        setServers(data.servers || {});
-        setCurrentServer(first);
-    });
-  },[episodeUrl]);
+  // Handle episode click
+  const handleEpisodeClick = async (ep, isDefault = false) => {
+    if (!ep || !ep.link) return;
 
-  // Set default episode on first load
-  useEffect(() => {
-    if (!episodes.length || episodeUrl) return;
-
-    const first = episodes[0];
-    if (!first?.link) {
-      console.error("Episode link missing", first);
+    const savedUser = JSON.parse(localStorage.getItem("user") || "null");
+    if (!savedUser && !isDefault) {
+      alert("Please login to watch");
+      navigate("/login");
       return;
     }
 
-    setSelectedEpisode(first.episode_number);
+    if (!isDefault) {
+      setSelectedEpisode(ep.episode_number);
+    }
 
-    navigate(
-      `?anime=${encodeURIComponent(animeUrl)}&ep=${encodeURIComponent(first.link)}`,
-      { replace: true }
-    );
-  }, [episodes, episodeUrl, animeUrl, navigate]);
+    setParams({ url: ep.link, ep: ep.episode_number });
 
-  // Handle episode click
-  const handleEpisodeClick = (ep) => {
-    setSelectedEpisode(ep.episode_number);
+    if (serverCache[ep.episode_number]) {
+      setCurrentServer(serverCache[ep.episode_number]);
+      return;
+    }
 
-    navigate(
-      `?anime=${encodeURIComponent(animeUrl)}&ep=${encodeURIComponent(ep.link)}`,
-      { replace: true }
-    );
+    try {
+      const res = await fetch(`http://127.0.0.1:8000/api/anime/stream?url=${encodeURIComponent(ep.link)}`);
+      const data = await res.json();
+      if (data.servers) {
+        setCurrentServer(data.servers);
+        setServerCache(prev => ({ ...prev, [ep.episode_number]: data.servers }));
+      }
+    } catch (err) {
+      console.error("Error fetching stream:", err);
+    }
   };
+
+  // Set default episode on first load
+  useEffect(() => {
+    if (!episodes.length || hasSetDefaultEpisode.current) return;
+
+    const sorted = [...episodes].sort((a, b) => a.episode_number - b.episode_number);
+    
+    const defaultEp = initialEp
+      ? sorted.find(e => e.episode_number === initialEp) || sorted[sorted.length - 1]
+      : sorted[sorted.length - 1];
+
+    handleEpisodeClick(defaultEp, true);
+    setSelectedEpisode(defaultEp.episode_number);
+
+    const index = sorted.findIndex(e => e.episode_number === defaultEp.episode_number);
+    setPage(Math.floor(index / EPISODES_PER_PAGE) + 1);
+
+    hasSetDefaultEpisode.current = true;
+  }, [episodes, initialEp]);
+
+  // Sync page
+  useEffect(() => {
+    if (!selectedEpisode) return;
+    const index = episodes.findIndex(ep => ep.episode_number === selectedEpisode);
+    if (index !== -1) setPage(Math.floor(index / EPISODES_PER_PAGE) + 1);
+  }, [selectedEpisode, episodes]);
 
   // Filter episodes
   const filteredEpisodes = useMemo(() => {
-    return episodes.filter(ep =>
-      ep.episode_number?.toString().includes(search)
-    );
+    return episodes.filter(ep => ep.episode_number.toString().includes(search));
   }, [episodes, search]);
 
-  const totalPages = Math.ceil(filteredEpisodes.length / EPISODES_PER_PAGE);
+  // DESC sorted episodes for UI
+  const sortedDesc = useMemo(() => {
+    return [...filteredEpisodes].sort((a, b) => b.episode_number - a.episode_number);
+  }, [filteredEpisodes]);
+
+  const totalPages = Math.ceil(sortedDesc.length / EPISODES_PER_PAGE);
   
+  // Display episodes: sort DESCENDING to show latest first
   const displayedEpisodes = useMemo(() => {
     const start = (page - 1) * EPISODES_PER_PAGE;
-    return filteredEpisodes.slice(start, start + EPISODES_PER_PAGE);
-  }, [filteredEpisodes, page]);
+    return sortedDesc.slice(start, start + EPISODES_PER_PAGE);
+  }, [sortedDesc, page]);
+
+  // FIXED EP range dropdown
+  const pageOptions = useMemo(() => {
+    const options = [];
+    for (let i = 0; i < totalPages; i++) {
+    const start = i * EPISODES_PER_PAGE;
+    const end = Math.min(start + EPISODES_PER_PAGE - 1, sortedDesc.length - 1);
+
+
+    const maxEp = sortedDesc[start]?.episode_number || 0;
+    const minEp = sortedDesc[end]?.episode_number || 0;
+
+
+    options.push({ value: i + 1, label: `EP ${maxEp} - ${minEp}` });
+    }
+    return options;
+  }, [sortedDesc, totalPages]);
   
-  const descriptionPreview = titleDetails.description?.slice(0, 200) || "";
+  const descriptionPreview = titleDetails.description.slice(0, 200);
   const fullDescription = titleDetails.description;
 
   return (
@@ -173,13 +233,12 @@ export default function WatchPage() {
             {currentServer ? (
               <iframe
                 src={currentServer}
+                title="Video Player"
                 allowFullScreen
-                className="absolute inset-0 w-full h-full"
+                className="absolute top-0 left-0 w-full h-full border-0"
               />
             ) : (
-              <p className="absolute inset-0 flex items-center justify-center text-gray-400">
-                No stream available
-              </p>
+              <p>Loading video...</p>
             )}
           </div>
           <div className="grid items-center grid-cols-1 gap-4 pt-1.5 md:grid-cols-3">
@@ -189,8 +248,10 @@ export default function WatchPage() {
                 onChange={(e) => setCurrentServer(e.target.value)}
                 className="w-[300px] bg-[#2b2b2b] text-white text-sm px-3 py-2 rounded-md border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                {Object.entries(servers).map(([name, link]) => (
-                  <option key={name} value={link}>{name}</option>
+                {Object.entries(servers).map(([name, url]) => (
+                  <option key={name} value={url}>
+                    {name}
+                  </option>
                 ))}
               </select>
             </div>
@@ -229,10 +290,7 @@ export default function WatchPage() {
             type="text"
             placeholder="Search episode..."
             value={search}
-            onChange={e => { 
-              setSearch(e.target.value); 
-              setPage(1); 
-            }}
+            onChange={e => { setSearch(e.target.value); setPage(1); }}
             className="w-full p-2 mb-4 rounded-md bg-[#2b2b2b] text-white"
           />
           <select
@@ -240,10 +298,10 @@ export default function WatchPage() {
             onChange={e => setPage(Number(e.target.value))}
             className="w-full p-2 mb-4 rounded-lg bg-[#2b2b2b] text-white"
           >
-            {Array.from({ length: totalPages}, (_, i) => (
-              <option key={i} value={i + 1}>
-                EP {i * EPISODES_PER_PAGE + 1} - {Math.min((i + 1) * EPISODES_PER_PAGE, filteredEpisodes.length)}
-              </option>
+            {pageOptions.map(opt => (
+                <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                </option>
             ))}
           </select>
 
@@ -252,24 +310,11 @@ export default function WatchPage() {
               <button
                 key={ep.episode_number}
                 onClick={() => handleEpisodeClick(ep)}
-                className={`p-2 text-sm rounded-lg text-center mb-4 ${
-                  selectedEpisode === ep.episode_number
-                    ? "bg-blue-600"
-                    : "bg-[#242424] hover:bg-[#333]"
-                }`}
-              >
-                {ep.episode_number}
-              </button>
-            ))}
-            {/* {displayedEpisodes.map(ep => (
-              <button
-                key={ep.episode_number}
-                onClick={() => handleEpisodeClick(ep)}
                 className={`p-2 text-sm text-center rounded-md ${selectedEpisode === ep.episode_number ? "bg-blue-600" : "bg-[#242424] hover:bg-[#333]"}`}
               >
                 {ep.episode_number}
               </button>
-            ))} */}
+            ))}
           </div>
         </div>
       </div>
@@ -325,10 +370,9 @@ export default function WatchPage() {
 
       {/* Description */}
       <div className="px-6 md:px-16 py-6 bg-[#0d0d0d] rounded-lg mt-4 text-sm leading-relaxed">
-        {(showFullDescription ? fullDescription : descriptionPreview)
-          .split("\n")
-          .map((p, i) => p && <p key={i} className="mb-3">{p}</p>
-        )}
+        {(showFullDescription ? fullDescription : descriptionPreview).split("\n\n").map((p, i) => (
+          <p key={i} className="mb-3">{p}</p>
+        ))}
         <button
           onClick={() => setShowFullDescription(!showFullDescription)}
           className="mt-2 text-blue-400 hover:text-blue-300"
